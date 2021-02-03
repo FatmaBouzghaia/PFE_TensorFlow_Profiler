@@ -1,8 +1,7 @@
-# inspired by Tensorflow2 tutorial on CNN:
-# https://www.tensorflow.org/tutorials/images/cnn
 import os
 import sys
 
+# To block info messages of TensorFlow
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 
 import tensorflow as tf
@@ -57,8 +56,8 @@ def download_dataset():
   plt.savefig("dataset.png")
   return (train_images, train_labels, test_images, test_labels)
 
-# create the CNN model
-def create_cnn_model():
+# create the Resnet50 model
+def create_resnet_model():
   model = models.Sequential()
   model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))
   model.add(layers.MaxPooling2D((2, 2)))
@@ -66,10 +65,8 @@ def create_cnn_model():
   model.add(layers.MaxPooling2D((2, 2)))
   model.add(layers.Conv2D(64, (3, 3), activation='relu'))
 
-  # print the CNN architecture
   model.summary()
 
-  # make the CNN more complex
   model.add(layers.Flatten())
   model.add(layers.Dense(64, activation='relu'))
   model.add(layers.Dense(10))
@@ -86,16 +83,14 @@ def train_model(model, batch_size):
                 metrics=['accuracy'])
 
   # Create a TensorBoard callback
-  logs = "logs/" + "-" + str(batch_size) + datetime.now().strftime("%Y%m%d-%H%M%S")
-  
+  logs = "logs_tb/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+
   tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
                                                   histogram_freq = 1,
                                                   profile_batch = '500,520')
 
-  print('Tensorboard created: ', logs)
-
   history = model.fit(train_images, train_labels, batch_size=batch_size, epochs=10, 
-                      validation_data=(test_images, test_labels), callbacks = [tboard_callback])
+                      validation_data=(test_images, test_labels),callbacks = [tboard_callback])
 
   # Evaluate the model
   plt.figure(num=2, figsize=(10,10))
@@ -159,7 +154,7 @@ def main(argv):
     print('Compute dtype: %s' % policy.compute_dtype)
     print('Variable dtype: %s' % policy.variable_dtype)
 
-  model = create_cnn_model()
+  model = create_resnet_model()
   train_model(model, batch_size)
 
 

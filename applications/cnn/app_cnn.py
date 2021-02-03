@@ -47,45 +47,6 @@ def download_dataset():
 
   return (train_images, train_labels, test_images, test_labels)
 
-def normalize_img(image, label):
-  """Normalizes images: `uint8` -> `float32`."""
-  return tf.cast(image, tf.float32) / 255., label
-
-# Downloading the dataset with prefetching
-def download_and_prefetch_dataset():
-  # Load the cifar-10 dataset
-  (train_batch, test_batch), ds_info = tfds.load(name="cifar10", split = ['train', 'test'], 
-                                                as_supervised = True, with_info = True)
- 
-  # Applying normalization before `ds.cache()` to re-use it.
-  train_batch = train_batch.map(normalize_img, 
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
-  train_batch = train_batch.batch(NB_SAMPLES)
-  train_batch = train_batch.cache()
-  train_batch = train_batch.prefetch(tf.data.experimental.AUTOTUNE)
-
-  print("There are " + str(ds_info.splits['train'].num_examples) + " training samples")
-
-  test_batch = test_batch.map(normalize_img, 
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
-  test_batch = test_batch.batch(NB_SAMPLES)
-  test_batch = test_batch.cache()
-  test_batch = test_batch.prefetch(tf.data.experimental.AUTOTUNE)
-
-  train_images, train_labels = [], []
-  for images, labels in train_batch.take(NB_SAMPLES):
-    train_images.append(images.numpy())
-    train_labels.append(labels.numpy())
-
-  test_images, test_labels = [], []
-  for images, labels in test_batch.take(-1):
-    test_images.append(images.numpy())
-    test_labels.append(labels.numpy())
-
-  print(train_images)
-
-  return (train_images, train_labels, test_images, test_labels)
-
 # Plotting the dataset
 def plot_dataset(train_images, train_labels):
   class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
@@ -126,10 +87,9 @@ def create_cnn_model():
 
   return model
 
-# Train the model with loading the dataset and evaluating it
-def load_data_and_train_model(model, batch_size):
+# Train the model  and evaluating it
+def train_model(model, batch_size):
   # Load the dataset
-  print('Loading the CIFAR-10 dataset')
   load_type = "download"
   train_images, train_labels, test_images, test_labels = download_dataset()
 
@@ -144,48 +104,9 @@ def load_data_and_train_model(model, batch_size):
                                                   histogram_freq = 1,
                                                   profile_batch='500,520')
 
-  
   history = model.fit(train_images, train_labels, batch_size=batch_size, epochs=10, 
                       validation_data=(test_images, test_labels), callbacks = [tboard_callback])
 
-  plot_model_evaluation(history, load_type)
-
-  test_loss, test_acc = model.evaluate(test_images, test_labels, batch_size=batch_size, verbose=2)
-  print(test_acc)
-
-  print("Validation:")
-  model.evaluate(test_images, test_labels)
-
-# Train the model with prefetching the dataset and evaluating it
-def prefetch_data_and_train_model(model, batch_size):
-  print('Prefetching the CIFAR-10 dataset')
-  load_type = "prefetch"
-  train_images,train_labels,test_images,test_labels = download_and_prefetch_dataset()
-
-  model.compile(optimizer='adam',
-                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                metrics=['accuracy'])
-
-  # Create a TensorBoard callback
-  logs = "logs/" + load_type + "_" + str(batch_size) + "-" + datetime.now().strftime("%Y%m%d-%H%M%S")
-
-  tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
-                                                  histogram_freq = 1,
-                                                  profile_batch='500,520')
-
-  history = model.fit(train_images, train_labels, batch_size=batch_size, epochs=10, 
-                      validation_data=(test_images, test_labels), callbacks = [tboard_callback])
-
-  plot_model_evaluation(history, load_type)
-
-  test_loss, test_acc = model.evaluate(test_images, test_labels, batch_size=batch_size, verbose=2)
-  print(test_acc)
-
-  print("Validation:")
-  model.evaluate(test_images, test_labels)
-
-# Plot the model evaluation
-def plot_model_evaluation(history, load_type):
   # Evaluate the model
   plt.figure(num=2, figsize=(10,10))
   plt.plot(history.history['accuracy'], label='accuracy')
@@ -197,6 +118,12 @@ def plot_model_evaluation(history, load_type):
   fig_name = "accuracy_" + load_type + ".png" 
   plt.savefig(fig_name)
 
+  test_loss, test_acc = model.evaluate(test_images, test_labels, batch_size=batch_size, verbose=2)
+  print(test_acc)
+
+  print("Validation:")
+  model.evaluate(test_images, test_labels)
+
 # Create the argument parser
 def create_arg_parser():
   batch_size_choices = [8,16,32,64,128,256,512,1024,2048, 4096, 8192,16384,32768]
@@ -204,9 +131,6 @@ def create_arg_parser():
   parser.add_argument('--batch_size', type=int, choices=batch_size_choices, 
                     default=32, required=True,
                     help='Setting the batch size for the training and evalution of the model')
-  parser.add_argument('--prefetch_dataset', type=int, choices=[0,1],
-                    default=0, required=True,
-                    help='Download the dataset with prefetching it')
   parser.add_argument('--gpu_mode', type=int, choices=[0,1], 
                     default=0, required=False,
                     help='Mode of the GPU: private or not')
@@ -247,10 +171,7 @@ def main(argv):
     print('Variable dtype: %s' % policy.variable_dtype)
 
   model = create_cnn_model()
-  if flags.prefetch_dataset == 0:
-    load_data_and_train_model(model, batch_size)
-  else:
-    prefetch_data_and_train_model(model, batch_size)
+  train_model(model, batch_size)
 
 
 if __name__ == '__main__':

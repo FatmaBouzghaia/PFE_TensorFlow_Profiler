@@ -1,7 +1,7 @@
 # inspired by https://github.com/frlim/data2040_final/blob/master/project_2/CNN_Final.ipynb
 #
 # runs Resnet50 on the Cifar10 dataset
-
+from tensorflow.keras.layers.experimental import preprocessing
 from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
 import tensorflow.keras as keras
 from tensorflow.keras import models
@@ -16,12 +16,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 import pandas as pd
+from datetime import datetime
 
-
+from tensorflow.keras.mixed_precision import experimental as mixed_precision
+policy = mixed_precision.Policy('mixed_float16')
+mixed_precision.set_policy(policy)
+# Now design your model and train it
 BATCH_SIZE=20
 #There are 50000 samples in the training dataset. You can select a subset of the traing set hre:
 NB_SAMPLES=50000
 
+data_augmentation = tf.keras.Sequential(
+        [preprocessing.RandomFlip("horizontal"),
+         preprocessing.RandomRotation(0.1),
+         preprocessing.RandomZoom(0.1)])
+inputs = tf.keras.Input(shape=(32, 32, 3))
 
 conv_base = ResNet50(weights='imagenet', include_top=False, input_shape=(256, 256, 3))
 
@@ -71,7 +80,14 @@ model.add(layers.Dense(10, activation='softmax'))
 
 model.compile(optimizer=optimizers.RMSprop(lr=2e-5), loss='binary_crossentropy', metrics=['acc'])
 
-history = model.fit(x_train, y_train, epochs=5, batch_size=BATCH_SIZE, validation_data=(x_test, y_test))
+# Create a TensorBoard callback
+logs = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+
+tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
+                                                 histogram_freq = 1,
+                                                 profile_batch = '500,520')
+
+history = model.fit(x_train, y_train, epochs=5, batch_size=BATCH_SIZE, validation_data=(x_test, y_test),callbacks = [tboard_callback])
 
 print("Validation:")
 model.evaluate(x_test, y_test)
