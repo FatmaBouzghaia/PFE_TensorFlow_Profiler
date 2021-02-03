@@ -89,8 +89,6 @@ def create_cnn_model():
 
 # Train the model  and evaluating it
 def train_model(model, batch_size):
-  # Load the dataset
-  load_type = "download"
   train_images, train_labels, test_images, test_labels = download_dataset()
 
   model.compile(optimizer='adam',
@@ -98,7 +96,7 @@ def train_model(model, batch_size):
                 metrics=['accuracy'])
 
   # Create a TensorBoard callback
-  logs = "logs/" + load_type + "_" + str(batch_size) + "-" + datetime.now().strftime("%Y%m%d-%H%M%S")
+  logs = "logs_load/" + str(batch_size) + "_" + datetime.now().strftime("%Y%m%d-%H%M%S")
   
   tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
                                                   histogram_freq = 1,
@@ -115,7 +113,7 @@ def train_model(model, batch_size):
   plt.ylabel('Accuracy')
   plt.ylim([0.5, 1])
   plt.legend(loc='lower right')
-  fig_name = "accuracy_" + load_type + ".png" 
+  fig_name = "accuracy_load.png" 
   plt.savefig(fig_name)
 
   test_loss, test_acc = model.evaluate(test_images, test_labels, batch_size=batch_size, verbose=2)

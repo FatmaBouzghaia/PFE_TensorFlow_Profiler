@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd ..
+
 for (( counter = 8; counter <= 32768; counter *= 2 )); do
 	GPU_MODE=0
 	MIXED_PRECISION=0

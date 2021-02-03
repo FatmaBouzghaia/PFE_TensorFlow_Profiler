@@ -6,7 +6,7 @@ import sys
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 
 import tensorflow as tf
-from tensorflow.keras import layers, models
+from tensorflow.keras import layers, models, datasets
 import tensorflow_datasets as tfds
 
 import argparse
@@ -32,7 +32,7 @@ ds_test = ds_test.batch(128)
 ds_test = ds_test.cache()
 ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
 
-print("There are " + str(ds_info.splits['train'].num_examples) + " training samples")
+# print("There are " + str(ds_info.splits['train'].num_examples) + " training samples")
 
 model = models.Sequential()
 model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))
@@ -52,15 +52,18 @@ model.add(layers.Dense(10))
 model.summary()
 
 model.compile(optimizer='adam',
-              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-              metrics=['accuracy'])
+                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                metrics=['accuracy'])
 
 # Create a TensorBoard callback
-logs = "logs/prefetch/" + "-" + datetime.now().strftime("%Y%m%d-%H%M%S")
+logs = "log/prefetch_" + datetime.now().strftime("%Y%m%d-%H%M%S")
 
 tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
                                                   histogram_freq = 1)
 
-history = model.fit(ds_train, epochs=10, batch_size=256, validation_data=ds_test, callbacks = [tboard_callback])
+history = model.fit(ds_train,
+                    epochs=10,
+                    validation_data=ds_test,
+                    callbacks = [tboard_callback])
 
 print("Working time: %s seconds" % (time.time() - start_time))
