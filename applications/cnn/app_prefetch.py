@@ -4,7 +4,7 @@ import os
 import sys
 
 # To disable info and warning logs
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import tensorflow as tf
 from tensorflow.keras import layers, models, datasets
